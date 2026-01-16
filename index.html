@@ -1,0 +1,154 @@
+
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <title>Vivi</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        margin: 0;
+        background: #f5f5f5;
+        padding: 20px;
+        box-sizing: border-box;
+      }
+      .container {
+        background: white;
+        padding: 40px;
+        border-radius: 16px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        max-width: 400px;
+        width: 100%;
+      }
+      h1 { color: #333; margin-bottom: 16px; text-align: center; }
+      .success { color: #22c55e; }
+      .subtitle { color: #666; text-align: center; margin-bottom: 24px; }
+      input {
+        width: 100%;
+        padding: 12px;
+        margin-bottom: 16px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 16px;
+        box-sizing: border-box;
+      }
+      button {
+        width: 100%;
+        padding: 14px;
+        background: #8B5CF6;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        cursor: pointer;
+      }
+      button:disabled { background: #ccc; }
+      .error { color: #dc2626; margin-bottom: 16px; text-align: center; }
+      .hidden { display: none; }
+      .logo { text-align: center; margin-bottom: 20px; font-size: 32px; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="logo">Vivi</div>
+
+      <!-- Password Reset Form -->
+      <div id="password-form">
+        <h1>Reset Password</h1>
+        <div id="error" class="error hidden"></div>
+        <input type="password" id="password" placeholder="New password" minlength="6">
+        <input type="password" id="confirm" placeholder="Confirm password">
+        <button id="submit" onclick="resetPassword()">Update Password</button>
+      </div>
+
+      <!-- Success Messages -->
+      <div id="password-success" class="hidden">
+        <h1 class="success">Password Updated!</h1>
+        <p class="subtitle">You can close this page and sign in with your new password.</p>
+      </div>
+
+      <div id="email-success" class="hidden">
+        <h1 class="success">Email Changed!</h1>
+        <p class="subtitle">You can close this page and return to the app.</p>
+      </div>
+    </div>
+
+    <script>
+      const SUPABASE_URL = 'https://tquihuvpnbznyxnzxyby.supabase.co';
+      const SUPABASE_KEY = 'sb_publishable_Yc3wYG_KXoCLf0ziMkTNFQ_KcaVJ-B9';
+
+      const hash = window.location.hash.substring(1);
+      const params = new URLSearchParams(hash);
+      const accessToken = params.get('access_token');
+      const type = params.get('type');
+
+      // Email change - show success immediately
+      if (type === 'email_change') {
+        document.getElementById('password-form').classList.add('hidden');
+        document.getElementById('email-success').classList.remove('hidden');
+      }
+
+      async function resetPassword() {
+        const password = document.getElementById('password').value;
+        const confirm = document.getElementById('confirm').value;
+        const errorEl = document.getElementById('error');
+        const submitBtn = document.getElementById('submit');
+
+        errorEl.classList.add('hidden');
+
+        if (!password || password.length < 6) {
+          errorEl.textContent = 'Password must be at least 6 characters';
+          errorEl.classList.remove('hidden');
+          return;
+        }
+
+        if (password !== confirm) {
+          errorEl.textContent = 'Passwords do not match';
+          errorEl.classList.remove('hidden');
+          return;
+        }
+
+        if (!accessToken) {
+          errorEl.textContent = 'Invalid or expired reset link';
+          errorEl.classList.remove('hidden');
+          return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Updating...';
+
+        try {
+          const response = await fetch(SUPABASE_URL + '/auth/v1/user', {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': SUPABASE_KEY,
+              'Authorization': 'Bearer ' + accessToken
+            },
+            body: JSON.stringify({ password })
+          });
+
+          if (response.ok) {
+            document.getElementById('password-form').classList.add('hidden');
+            document.getElementById('password-success').classList.remove('hidden');
+          } else {
+            const data = await response.json();
+            errorEl.textContent = data.message || 'Failed to update password';
+            errorEl.classList.remove('hidden');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Update Password';
+          }
+        } catch (err) {
+          errorEl.textContent = 'An error occurred. Please try again.';
+          errorEl.classList.remove('hidden');
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Update Password';
+        }
+      }
+    </script>
+  </body>
+  </html>
